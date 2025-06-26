@@ -1,0 +1,91 @@
+import pandas as pd
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+import seaborn as sns
+from scipy.interpolate import make_interp_spline
+
+# Lista de rutas de los archivos CSV
+csv_files = [
+    'C:/Users/Sacha/OneDrive/Escritorio/TODO/UNI/Master/TFM/Materiales datasheets/61.csv',
+    'C:/Users/Sacha/OneDrive/Escritorio/TODO/UNI/Master/TFM/Materiales datasheets/68.csv',
+    'C:/Users/Sacha/OneDrive/Escritorio/TODO/UNI/Master/TFM/Materiales datasheets/77.csv',
+    'C:/Users/Sacha/OneDrive/Escritorio/TODO/UNI/Master/TFM/Materiales datasheets/80.csv',
+    'C:/Users/Sacha/OneDrive/Escritorio/TODO/UNI/Master/TFM/Materiales datasheets/96.csv',
+    'C:/Users/Sacha/OneDrive/Escritorio/TODO/UNI/Master/TFM/Materiales datasheets/98.csv'
+]
+
+# Lista para almacenar los DataFrames limpios
+dataframes = []
+
+for file in csv_files:
+    try:
+        # Leer archivo
+        df = pd.read_csv(file, encoding='latin1', sep=',', decimal='.', skiprows=2)
+        print(f"Archivo leído correctamente: {file}")
+
+        # Eliminar columnas y filas completamente vacías
+        df = df.dropna(axis=1, how='all')
+        df = df.dropna(axis=0, how='all')
+
+        # Conservar solo las tres primeras columnas
+        df = df.iloc[:, :3]
+
+        # Renombrar las columnas a freq, muR, muI
+        df.columns = ['freq', 'muR', 'muI']
+
+        # Guardar el DataFrame limpio
+        dataframes.append(df)
+
+    except Exception as e:
+        print(f"Error al leer {file}: {e}")
+
+# Mostrar vista previa de cada DataFrame
+for i, df in enumerate(dataframes):
+    print(f"\nVista previa del archivo {csv_files[i]}:")
+    print(df.head())
+
+# Preparar los datos para graficar solo muR, excluyendo el material 68
+plot_data = pd.DataFrame()
+material_ids = ['61', '68', '77', '80', '96', '98']
+
+for i, df in enumerate(dataframes):
+    material = material_ids[i]
+    if material == '68':
+        continue  # Saltar el material 68
+    df = df.copy()
+    df['freq_kHz'] = df['freq'] / 1e3  # Convertir a kHz
+    df['material'] = material
+    
+    # Solo columna muR
+    df_muR = df[['freq_kHz', 'muR', 'material']].copy()
+    plot_data = pd.concat([plot_data, df_muR], ignore_index=True)
+
+# Estilo técnico con fuente serif
+sns.set(style='whitegrid', context='notebook', font='serif')
+
+# Crear la figura
+plt.figure(figsize=(10, 6))
+sns.lineplot(
+    data=plot_data,
+    x='freq_kHz',
+    y='muR',
+    hue='material'
+)
+
+# Etiquetas
+plt.xlabel('Frecuencia [kHz]')
+plt.ylabel('Permeabilidad relativa real (μR)')
+
+# Limitar el eje X
+plt.xlim(0, 20000)
+
+# Sin título
+plt.title('')
+
+# Leyenda
+plt.legend(title='Material', loc='best')
+
+plt.tight_layout()
+plt.show()
+
